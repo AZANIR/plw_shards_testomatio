@@ -54,6 +54,7 @@ jobs:
                   echo "🔑 Testomat.io API key configured: ${{ secrets.TESTOMATIO != '' }}"
 
             - name: Run Playwright tests (sharded) with Testomat reporter
+              timeout-minutes: 30
               run: |
                   npx playwright test \
                     --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}

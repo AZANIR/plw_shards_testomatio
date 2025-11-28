@@ -28,6 +28,8 @@ export default defineConfig({
       run: process.env.TESTOMATIO_RUN,
       // Optional: set project ID if needed
       projectId: process.env.TESTOMATIO_PROJECT_ID,
+      // Don't block test completion waiting for upload
+      async: true,
     }],
   ],
   
