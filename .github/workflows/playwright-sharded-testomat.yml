@@ -105,12 +105,12 @@ jobs:
     if: ${{ !cancelled() }}
     needs: [playwright-tests]
     runs-on: ubuntu-latest
-    
+
     env:
       TESTOMATIO: ${{ secrets.TESTOMATIO }}
       TESTOMATIO_URL: ${{ secrets.TESTOMATIO_URL }}
       TESTOMATIO_RUN: "Playwright Sharded CI Run - ${{ github.run_id }}"
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
