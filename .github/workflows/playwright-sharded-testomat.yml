@@ -67,24 +67,11 @@ jobs:
         env:
           TESTOMATIO: ${{ secrets.TESTOMATIO }}
           TESTOMATIO_URL: ${{ secrets.TESTOMATIO_URL }}
-          TESTOMATIO_RUN: "Playwright Sharded CI Run - ${{ github.run_id }}"
         run: |
           if [ -f "test-results/junit.xml" ]; then
             echo "Uploading JUnit results to Testomat.io..."
             echo "Using TESTOMATIO_URL: $TESTOMATIO_URL"
-            echo "Using TESTOMATIO_RUN: $TESTOMATIO_RUN"
-            
-            # First, create/start the run
-            echo "Creating test run..."
-            RUN_ID=$(npx @testomatio/reporter start --kind automated 2>&1 | grep -oP 'Run ID: \K[^\s]+' || echo "")
-            if [ -z "$RUN_ID" ]; then
-              echo "Failed to create run, trying to upload XML anyway..."
-            else
-              echo "Run created with ID: $RUN_ID"
-              export TESTOMATIO_RUN_ID="$RUN_ID"
-            fi
-            
-            # Upload JUnit XML report
+            # Upload JUnit XML report - API key and URL from secrets
             npx @testomatio/reporter xml "test-results/junit.xml" || echo "Upload failed, continuing..."
           else
             echo "No JUnit report found, skipping upload"
