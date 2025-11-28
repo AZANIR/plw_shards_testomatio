@@ -64,9 +64,20 @@ jobs:
       - name: Upload JUnit results to Testomat.io
         if: always()
         timeout-minutes: 5
+        env:
+          TESTOMATIO: ${{ secrets.TESTOMATIO }}
+          TESTOMATIO_URL: ${{ secrets.TESTOMATIO_URL }}
+          TESTOMATIO_RUN: "Playwright Sharded CI Run - ${{ github.run_id }}"
         run: |
           if [ -f "test-results/junit.xml" ]; then
             echo "Uploading JUnit results to Testomat.io..."
+            # Use start-test-run to create run, then upload XML
+            npx @testomatio/reporter start-test-run \
+              --api-key "$TESTOMATIO" \
+              --run-name "$TESTOMATIO_RUN" \
+              --url "$TESTOMATIO_URL" || true
+            
+            # Upload JUnit XML report
             npx @testomatio/reporter report-xml "test-results/junit.xml" \
               --api-key "$TESTOMATIO" \
               --run-name "$TESTOMATIO_RUN" \

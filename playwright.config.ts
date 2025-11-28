@@ -23,11 +23,12 @@ export default defineConfig({
   reporter: [
     ['list'], // Console reporter
     ['junit', { outputFile: 'test-results/junit.xml' }], // JUnit for all
-    ...(process.env.CI && process.env.TESTOMATIO ? [
+    // Testomat.io reporter only for local runs, not in CI (to avoid hanging)
+    ...(!process.env.CI && process.env.TESTOMATIO ? [
       ['@testomatio/reporter/playwright', {
         apiKey: process.env.TESTOMATIO,
         run: process.env.TESTOMATIO_RUN,
-        url: process.env.TESTOMATIO_URL, // Custom URL
+        url: process.env.TESTOMATIO_URL,
       }]
     ] : []),
   ],
