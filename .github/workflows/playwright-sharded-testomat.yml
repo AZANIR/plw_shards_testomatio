@@ -67,12 +67,14 @@ jobs:
         env:
           TESTOMATIO: ${{ secrets.TESTOMATIO }}
           TESTOMATIO_URL: ${{ secrets.TESTOMATIO_URL }}
+          # Don't set TESTOMATIO_RUN - let xml command create run automatically
         run: |
           if [ -f "test-results/junit.xml" ]; then
             echo "Uploading JUnit results to Testomat.io..."
             echo "Using TESTOMATIO_URL: $TESTOMATIO_URL"
-            # Upload JUnit XML report - API key and URL from secrets
-            npx @testomatio/reporter xml "test-results/junit.xml" || echo "Upload failed, continuing..."
+            # Upload JUnit XML report - command will create run automatically
+            # Use --shared-run flag for sharding support
+            npx @testomatio/reporter xml "test-results/junit.xml" --shared-run || echo "Upload failed, continuing..."
           else
             echo "No JUnit report found, skipping upload"
           fi
