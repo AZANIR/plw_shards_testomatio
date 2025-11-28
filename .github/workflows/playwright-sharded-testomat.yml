@@ -73,7 +73,18 @@ jobs:
             echo "Uploading JUnit results to Testomat.io..."
             echo "Using TESTOMATIO_URL: $TESTOMATIO_URL"
             echo "Using TESTOMATIO_RUN: $TESTOMATIO_RUN"
-            # Upload JUnit XML report - uses environment variables automatically
+            
+            # First, create/start the run
+            echo "Creating test run..."
+            RUN_ID=$(npx @testomatio/reporter start --kind automated 2>&1 | grep -oP 'Run ID: \K[^\s]+' || echo "")
+            if [ -z "$RUN_ID" ]; then
+              echo "Failed to create run, trying to upload XML anyway..."
+            else
+              echo "Run created with ID: $RUN_ID"
+              export TESTOMATIO_RUN_ID="$RUN_ID"
+            fi
+            
+            # Upload JUnit XML report
             npx @testomatio/reporter xml "test-results/junit.xml" || echo "Upload failed, continuing..."
           else
             echo "No JUnit report found, skipping upload"
