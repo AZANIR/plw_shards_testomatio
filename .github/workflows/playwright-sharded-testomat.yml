@@ -1,0 +1,98 @@
+name: Playwright Sharded with Testomat.io
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  playwright-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false # Continue running other shards even if one fails
+      matrix:
+        shardIndex: [1, 2, 3] # Number of shards - adjust based on your test suite size
+        shardTotal: [3]
+
+    env:
+      # --- Testomat.io environment variables ---
+      TESTOMATIO: ${{ secrets.TESTOMATIO }} # Your Testomat.io API key
+      TESTOMATIO_PROJECT_ID: ${{ secrets.TESTOMATIO_PROJECT_ID }} # Optional: Project ID if you use it
+      TESTOMATIO_RUN: "Playwright Sharded CI Run - ${{ github.run_id }}"
+      TESTOMATIO_SHARED_RUN: "1" # Enable shared run for sharding
+
+      # Optional: Link run to CI build / PR
+      CI_BUILD_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      CI_COMMIT_SHA: ${{ github.sha }}
+      CI_COMMIT_REF: ${{ github.ref }}
+
+      # --- Node / Playwright general envs ---
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Echo shard info
+        run: |
+          echo "🚀 Running shard ${{ matrix.shardIndex }} of ${{ matrix.shardTotal }}"
+          echo "📊 Total shards: ${{ matrix.shardTotal }}"
+          echo "🔑 Testomat.io API key configured: ${{ secrets.TESTOMATIO != '' }}"
+          echo "🔄 Workflow triggered at $(date)"
+
+            - name: Run Playwright tests (sharded)
+              timeout-minutes: 30
+              run: |
+                  npx playwright test \
+                    --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} || true
+              continue-on-error: true
+
+      - name: Upload results to Testomat.io
+        if: always()
+        timeout-minutes: 5
+        run: |
+          if [ -f "test-results/junit.xml" ]; then
+            echo "Uploading test results to Testomat.io..."
+            npx @testomatio/reporter upload "test-results/junit.xml" \
+              --api-key "$TESTOMATIO" \
+              --run-name "$TESTOMATIO_RUN" \
+              --project-id "$TESTOMATIO_PROJECT_ID" || echo "Upload failed, continuing..."
+          else
+            echo "No JUnit report found, skipping upload"
+          fi
+        continue-on-error: true
+
+      # Optional: Upload Playwright HTML report artifacts
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-shard-${{ matrix.shardIndex }}
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # Optional: Upload test results as JSON
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-shard-${{ matrix.shardIndex }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
