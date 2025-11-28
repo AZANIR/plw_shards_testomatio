@@ -180,7 +180,7 @@ jobs:
             JUNIT_FILE="$(ls all-junit-reports/*.xml | head -1)"
             echo "✅ Found JUnit file in artifacts: $JUNIT_FILE"
           fi
-          
+
           if [ -n "$JUNIT_FILE" ] && [ -f "$JUNIT_FILE" ]; then
             echo "Uploading JUnit report to Testomat.io: $JUNIT_FILE"
             echo "File size: $(ls -lh "$JUNIT_FILE" | awk '{print $5}')"
