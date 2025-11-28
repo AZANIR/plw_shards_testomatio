@@ -55,12 +55,12 @@ jobs:
           echo "🔑 Testomat.io API key configured: ${{ secrets.TESTOMATIO != '' }}"
           echo "🔄 Workflow triggered at $(date)"
 
-            - name: Run Playwright tests (sharded)
-              timeout-minutes: 30
-              run: |
-                  npx playwright test \
-                    --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} || true
-              continue-on-error: true
+      - name: Run Playwright tests (sharded)
+        timeout-minutes: 30
+        run: |
+          npx playwright test \
+            --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} || true
+        continue-on-error: true
 
       - name: Upload results to Testomat.io
         if: always()
