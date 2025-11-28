@@ -141,8 +141,16 @@ jobs:
       - name: Merge blob reports to JUnit
         run: |
           if [ -d "all-blob-reports" ] && [ "$(ls -A all-blob-reports)" ]; then
-            echo "Merging blob reports..."
-            npx playwright merge-reports --reporter=junit --output-file=merged-junit.xml ./all-blob-reports || echo "Merge failed"
+            echo "Merging blob reports to JUnit..."
+            npx playwright merge-reports --config=merge-junit.config.ts --reporter=junit ./all-blob-reports || echo "Merge failed"
+            # Check if merged file was created
+            if [ -f "merged-junit.xml" ]; then
+              echo "✅ Merged JUnit file created: merged-junit.xml"
+              ls -lh merged-junit.xml
+            else
+              echo "⚠️ Merged JUnit file not found, checking test-results directory..."
+              ls -la test-results/ || true
+            fi
           else
             echo "No blob reports found"
           fi
@@ -160,19 +168,31 @@ jobs:
         if: always()
         timeout-minutes: 5
         run: |
-          # Try to use merged JUnit first, then fallback to individual JUnit reports
+          # Check for merged JUnit file in different locations
+          JUNIT_FILE=""
           if [ -f "merged-junit.xml" ]; then
-            echo "Uploading merged JUnit report to Testomat.io..."
-            # Don't set TESTOMATIO_RUN - let it use the run created above or create new one
-            unset TESTOMATIO_RUN
-            npx @testomatio/reporter xml "merged-junit.xml" || echo "Upload failed"
+            JUNIT_FILE="merged-junit.xml"
+            echo "✅ Found merged JUnit file: merged-junit.xml"
+          elif [ -f "test-results/junit.xml" ]; then
+            JUNIT_FILE="test-results/junit.xml"
+            echo "✅ Found JUnit file in test-results: test-results/junit.xml"
           elif [ -d "all-junit-reports" ] && [ "$(ls -A all-junit-reports/*.xml 2>/dev/null)" ]; then
-            echo "Uploading first JUnit report to Testomat.io..."
-            # Don't set TESTOMATIO_RUN - let it use the run created above or create new one
+            JUNIT_FILE="$(ls all-junit-reports/*.xml | head -1)"
+            echo "✅ Found JUnit file in artifacts: $JUNIT_FILE"
+          fi
+          
+          if [ -n "$JUNIT_FILE" ] && [ -f "$JUNIT_FILE" ]; then
+            echo "Uploading JUnit report to Testomat.io: $JUNIT_FILE"
+            echo "File size: $(ls -lh "$JUNIT_FILE" | awk '{print $5}')"
+            # Don't set TESTOMATIO_RUN - let it create run automatically
             unset TESTOMATIO_RUN
-            npx @testomatio/reporter xml "$(ls all-junit-reports/*.xml | head -1)" || echo "Upload failed"
+            npx @testomatio/reporter xml "$JUNIT_FILE" || echo "Upload failed"
           else
-            echo "No JUnit reports found for upload"
+            echo "❌ No JUnit reports found for upload"
+            echo "Checking directories..."
+            ls -la . || true
+            ls -la test-results/ || true
+            ls -la all-junit-reports/ || true
           fi
         continue-on-error: true
 
