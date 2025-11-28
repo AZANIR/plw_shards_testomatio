@@ -20,18 +20,24 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   
   // Reporter configuration
-  reporter: [
-    ['list'], // Console reporter
-    ['junit', { outputFile: 'test-results/junit.xml' }], // JUnit for all
-    // Testomat.io reporter only for local runs, not in CI (to avoid hanging)
-    ...(!process.env.CI && process.env.TESTOMATIO ? [
-      ['@testomatio/reporter/playwright', {
-        apiKey: process.env.TESTOMATIO,
-        run: process.env.TESTOMATIO_RUN,
-        url: process.env.TESTOMATIO_URL,
-      }]
-    ] : []),
-  ],
+  reporter: process.env.CI
+    ? [
+        ['list'], // Console reporter
+        ['blob'], // Blob reporter for merging sharded reports
+        ['junit', { outputFile: 'test-results/junit.xml' }], // JUnit for Testomat.io
+      ]
+    : [
+        ['list'], // Console reporter
+        ['junit', { outputFile: 'test-results/junit.xml' }],
+        // Testomat.io reporter only for local runs, not in CI (to avoid hanging)
+        ...(process.env.TESTOMATIO ? [
+          ['@testomatio/reporter/playwright', {
+            apiKey: process.env.TESTOMATIO,
+            run: process.env.TESTOMATIO_RUN,
+            url: process.env.TESTOMATIO_URL,
+          }]
+        ] : []),
+      ],
   
   // Shared settings for all projects
   use: {

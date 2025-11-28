@@ -61,24 +61,25 @@ jobs:
             --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} || true
         continue-on-error: true
 
-      - name: Upload JUnit results to Testomat.io
+      # Upload blob report for merging
+      - name: Upload blob report
         if: always()
-        timeout-minutes: 5
-        env:
-          TESTOMATIO: ${{ secrets.TESTOMATIO }}
-          TESTOMATIO_URL: ${{ secrets.TESTOMATIO_URL }}
-          # Don't set TESTOMATIO_RUN - let xml command create run automatically
-        run: |
-          if [ -f "test-results/junit.xml" ]; then
-            echo "Uploading JUnit results to Testomat.io..."
-            echo "Using TESTOMATIO_URL: $TESTOMATIO_URL"
-            # Upload JUnit XML report - command will create run automatically
-            # Use --shared-run flag for sharding support
-            npx @testomatio/reporter xml "test-results/junit.xml" --shared-run || echo "Upload failed, continuing..."
-          else
-            echo "No JUnit report found, skipping upload"
-          fi
-        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shardIndex }}
+          path: blob-report/
+          if-no-files-found: ignore
+          retention-days: 1
+
+      # Upload JUnit report for Testomat.io
+      - name: Upload JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report-${{ matrix.shardIndex }}
+          path: test-results/junit.xml
+          if-no-files-found: ignore
+          retention-days: 1
 
       # Optional: Upload Playwright HTML report artifacts
       - name: Upload Playwright HTML report
@@ -99,3 +100,83 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
           retention-days: 7
+
+  merge-and-upload:
+    if: ${{ !cancelled() }}
+    needs: [playwright-tests]
+    runs-on: ubuntu-latest
+    
+    env:
+      TESTOMATIO: ${{ secrets.TESTOMATIO }}
+      TESTOMATIO_URL: ${{ secrets.TESTOMATIO_URL }}
+      TESTOMATIO_RUN: "Playwright Sharded CI Run - ${{ github.run_id }}"
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download blob reports
+        uses: actions/download-artifact@v5
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+
+      - name: Download JUnit reports
+        uses: actions/download-artifact@v5
+        with:
+          path: all-junit-reports
+          pattern: junit-report-*
+          merge-multiple: true
+
+      - name: Merge blob reports to JUnit
+        run: |
+          if [ -d "all-blob-reports" ] && [ "$(ls -A all-blob-reports)" ]; then
+            echo "Merging blob reports..."
+            npx playwright merge-reports --reporter=junit --output-file=merged-junit.xml ./all-blob-reports || echo "Merge failed"
+          else
+            echo "No blob reports found"
+          fi
+
+      - name: Upload merged results to Testomat.io
+        if: always()
+        timeout-minutes: 5
+        run: |
+          # Try to use merged JUnit first, then fallback to individual JUnit reports
+          if [ -f "merged-junit.xml" ]; then
+            echo "Uploading merged JUnit report to Testomat.io..."
+            npx @testomatio/reporter xml "merged-junit.xml" || echo "Upload failed"
+          elif [ -d "all-junit-reports" ] && [ "$(ls -A all-junit-reports/*.xml 2>/dev/null)" ]; then
+            echo "Uploading first JUnit report to Testomat.io..."
+            # Upload first JUnit report (all shards should be in same run)
+            npx @testomatio/reporter xml "$(ls all-junit-reports/*.xml | head -1)" || echo "Upload failed"
+          else
+            echo "No JUnit reports found for upload"
+          fi
+        continue-on-error: true
+
+      - name: Generate merged HTML report
+        if: always()
+        run: |
+          if [ -d "all-blob-reports" ] && [ "$(ls -A all-blob-reports)" ]; then
+            echo "Generating merged HTML report..."
+            npx playwright merge-reports --reporter=html ./all-blob-reports || echo "HTML report generation failed"
+          fi
+
+      - name: Upload merged HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: merged-html-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
