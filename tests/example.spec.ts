@@ -21,7 +21,7 @@ test('should pass - example test 2', async ({ page }) => {
 test('should pass - example test 3', async ({ page }) => {
   await page.goto('https://example.com');
   const link = page.locator('a');
-  await expect(link).toHaveAttribute('href', 'https://www.iana.org/domains/example');
+  await expect(link).toHaveAttribute('href', 'https://iana.org/domains/example');
 });
 
 test('should pass - example test 4', async ({ page }) => {
