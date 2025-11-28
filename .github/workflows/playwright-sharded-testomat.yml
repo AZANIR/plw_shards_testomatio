@@ -53,7 +53,6 @@ jobs:
           echo "🚀 Running shard ${{ matrix.shardIndex }} of ${{ matrix.shardTotal }}"
           echo "📊 Total shards: ${{ matrix.shardTotal }}"
           echo "🔑 Testomat.io API key configured: ${{ secrets.TESTOMATIO != '' }}"
-          echo "🔄 Workflow triggered at $(date)"
 
       - name: Run Playwright tests (sharded)
         timeout-minutes: 30
