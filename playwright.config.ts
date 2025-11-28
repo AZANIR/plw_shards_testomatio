@@ -20,16 +20,19 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   
   // Reporter configuration
-  reporter: [
-    ['list'], // Console reporter
-    ['@testomatio/reporter/playwright', {
-      apiKey: process.env.TESTOMATIO,
-      // Optional: set run name from env or use default
-      run: process.env.TESTOMATIO_RUN,
-      // Optional: set project ID if needed
-      projectId: process.env.TESTOMATIO_PROJECT_ID,
-    }],
-  ],
+  reporter: process.env.CI 
+    ? [
+        ['list'], // Console reporter
+        ['junit', { outputFile: 'test-results/junit.xml' }], // JUnit for CI
+      ]
+    : [
+        ['list'], // Console reporter
+        ['@testomatio/reporter/playwright', {
+          apiKey: process.env.TESTOMATIO,
+          run: process.env.TESTOMATIO_RUN,
+          projectId: process.env.TESTOMATIO_PROJECT_ID,
+        }],
+      ],
   
   // Shared settings for all projects
   use: {

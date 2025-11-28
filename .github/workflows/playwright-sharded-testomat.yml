@@ -54,17 +54,25 @@ jobs:
                   echo "📊 Total shards: ${{ matrix.shardTotal }}"
                   echo "🔑 Testomat.io API key configured: ${{ secrets.TESTOMATIO != '' }}"
 
-            - name: Run Playwright tests (sharded) with Testomat reporter
+            - name: Run Playwright tests (sharded)
               timeout-minutes: 30
               run: |
-                  # Run tests with timeout to prevent hanging
-                  timeout 1800 bash -c "
-                    npx playwright test \
-                      --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} || true
-                    echo 'Tests execution finished'
-                  " || echo 'Timeout reached, continuing...'
-                  # Always exit successfully to continue workflow
-                  exit 0
+                  npx playwright test \
+                    --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+
+            - name: Upload results to Testomat.io
+              if: always()
+              timeout-minutes: 5
+              run: |
+                  if [ -f "test-results/junit.xml" ]; then
+                    echo "Uploading test results to Testomat.io..."
+                    npx @testomatio/reporter upload "test-results/junit.xml" \
+                      --api-key "$TESTOMATIO" \
+                      --run-name "$TESTOMATIO_RUN" \
+                      --project-id "$TESTOMATIO_PROJECT_ID" || echo "Upload failed, continuing..."
+                  else
+                    echo "No JUnit report found, skipping upload"
+                  fi
               continue-on-error: true
 
             # Optional: Upload Playwright HTML report artifacts
