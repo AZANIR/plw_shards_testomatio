@@ -61,16 +61,16 @@ jobs:
             --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} || true
         continue-on-error: true
 
-      - name: Upload results to Testomat.io
+      - name: Upload JUnit results to Testomat.io
         if: always()
         timeout-minutes: 5
         run: |
           if [ -f "test-results/junit.xml" ]; then
-            echo "Uploading test results to Testomat.io..."
-            npx @testomatio/reporter upload "test-results/junit.xml" \
+            echo "Uploading JUnit results to Testomat.io..."
+            npx @testomatio/reporter report-xml "test-results/junit.xml" \
               --api-key "$TESTOMATIO" \
               --run-name "$TESTOMATIO_RUN" \
-              --project-id "$TESTOMATIO_PROJECT_ID" || echo "Upload failed, continuing..."
+              --url "$TESTOMATIO_URL" || echo "Upload failed, continuing..."
           else
             echo "No JUnit report found, skipping upload"
           fi

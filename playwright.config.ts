@@ -20,19 +20,18 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   
   // Reporter configuration
-  reporter: process.env.CI 
-    ? [
-        ['list'], // Console reporter
-        ['junit', { outputFile: 'test-results/junit.xml' }], // JUnit for CI
-      ]
-    : [
-        ['list'], // Console reporter
-        ['@testomatio/reporter/playwright', {
-          apiKey: process.env.TESTOMATIO,
-          run: process.env.TESTOMATIO_RUN,
-          projectId: process.env.TESTOMATIO_PROJECT_ID,
-        }],
-      ],
+  reporter: [
+    ['list'], // Console reporter
+    ['junit', { outputFile: 'test-results/junit.xml' }], // JUnit for all
+    ...(process.env.CI && process.env.TESTOMATIO ? [
+      ['@testomatio/reporter/playwright', {
+        apiKey: process.env.TESTOMATIO,
+        run: process.env.TESTOMATIO_RUN,
+        projectId: process.env.TESTOMATIO_PROJECT_ID,
+        url: process.env.TESTOMATIO_URL, // Custom URL
+      }]
+    ] : []),
+  ],
   
   // Shared settings for all projects
   use: {
