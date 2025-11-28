@@ -64,9 +64,15 @@ jobs:
       - name: Upload JUnit results to Testomat.io
         if: always()
         timeout-minutes: 5
+        env:
+          TESTOMATIO: ${{ secrets.TESTOMATIO }}
+          TESTOMATIO_URL: ${{ secrets.TESTOMATIO_URL }}
+          TESTOMATIO_RUN: "Playwright Sharded CI Run - ${{ github.run_id }}"
         run: |
           if [ -f "test-results/junit.xml" ]; then
             echo "Uploading JUnit results to Testomat.io..."
+            echo "Using TESTOMATIO_URL: $TESTOMATIO_URL"
+            echo "Using TESTOMATIO_RUN: $TESTOMATIO_RUN"
             # Upload JUnit XML report - uses environment variables automatically
             npx @testomatio/reporter xml "test-results/junit.xml" || echo "Upload failed, continuing..."
           else
