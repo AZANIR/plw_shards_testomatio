@@ -27,7 +27,6 @@ export default defineConfig({
       ['@testomatio/reporter/playwright', {
         apiKey: process.env.TESTOMATIO,
         run: process.env.TESTOMATIO_RUN,
-        projectId: process.env.TESTOMATIO_PROJECT_ID,
         url: process.env.TESTOMATIO_URL, // Custom URL
       }]
     ] : []),
