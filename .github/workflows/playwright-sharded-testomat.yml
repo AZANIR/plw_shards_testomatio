@@ -105,11 +105,11 @@ jobs:
     if: ${{ !cancelled() }}
     needs: [playwright-tests]
     runs-on: ubuntu-latest
-
+    
     env:
       TESTOMATIO: ${{ secrets.TESTOMATIO }}
       TESTOMATIO_URL: ${{ secrets.TESTOMATIO_URL }}
-      TESTOMATIO_RUN: "Playwright Sharded CI Run - ${{ github.run_id }}"
+      # Don't set TESTOMATIO_RUN - let xml command create run automatically
 
     steps:
       - name: Checkout repository
@@ -147,6 +147,15 @@ jobs:
             echo "No blob reports found"
           fi
 
+      - name: Create Testomat.io run
+        if: always()
+        timeout-minutes: 2
+        run: |
+          echo "Creating Testomat.io run..."
+          # Create run first - this will return run ID or use TESTOMATIO_RUN
+          npx @testomatio/reporter start --kind automated || echo "Run creation failed or already exists"
+        continue-on-error: true
+
       - name: Upload merged results to Testomat.io
         if: always()
         timeout-minutes: 5
@@ -154,10 +163,13 @@ jobs:
           # Try to use merged JUnit first, then fallback to individual JUnit reports
           if [ -f "merged-junit.xml" ]; then
             echo "Uploading merged JUnit report to Testomat.io..."
+            # Don't set TESTOMATIO_RUN - let it use the run created above or create new one
+            unset TESTOMATIO_RUN
             npx @testomatio/reporter xml "merged-junit.xml" || echo "Upload failed"
           elif [ -d "all-junit-reports" ] && [ "$(ls -A all-junit-reports/*.xml 2>/dev/null)" ]; then
             echo "Uploading first JUnit report to Testomat.io..."
-            # Upload first JUnit report (all shards should be in same run)
+            # Don't set TESTOMATIO_RUN - let it use the run created above or create new one
+            unset TESTOMATIO_RUN
             npx @testomatio/reporter xml "$(ls all-junit-reports/*.xml | head -1)" || echo "Upload failed"
           else
             echo "No JUnit reports found for upload"
