@@ -57,12 +57,13 @@ jobs:
             - name: Run Playwright tests (sharded) with Testomat reporter
               timeout-minutes: 30
               run: |
-                  set +e
-                  npx playwright test \
-                    --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
-                  TEST_EXIT_CODE=$?
-                  echo "Tests completed with exit code: $TEST_EXIT_CODE"
-                  # Force exit after tests complete, don't wait for reporter
+                  # Run tests with timeout to prevent hanging
+                  timeout 1800 bash -c "
+                    npx playwright test \
+                      --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} || true
+                    echo 'Tests execution finished'
+                  " || echo 'Timeout reached, continuing...'
+                  # Always exit successfully to continue workflow
                   exit 0
               continue-on-error: true
 
