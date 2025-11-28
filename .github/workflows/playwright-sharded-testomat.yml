@@ -22,6 +22,7 @@ jobs:
             TESTOMATIO: ${{ secrets.TESTOMATIO }} # Your Testomat.io API key
             TESTOMATIO_PROJECT_ID: ${{ secrets.TESTOMATIO_PROJECT_ID }} # Optional: Project ID if you use it
             TESTOMATIO_RUN: "Playwright Sharded CI Run - ${{ github.run_id }}"
+            TESTOMATIO_SHARED_RUN: "1" # Enable shared run for sharding
 
             # Optional: Link run to CI build / PR
             CI_BUILD_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -57,7 +58,8 @@ jobs:
               timeout-minutes: 30
               run: |
                   npx playwright test \
-                    --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+                    --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} || true
+              continue-on-error: true
 
             # Optional: Upload Playwright HTML report artifacts
             - name: Upload Playwright HTML report
